@@ -1,0 +1,937 @@
+ 
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>반도체 도핑 시뮬레이션</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #0d0d1a, #111827, #0a1628);
+            min-height: 100vh;
+            color: white;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 1.8rem;
+            margin-bottom: 6px;
+            color: #e0e0ff;
+            text-shadow: 0 0 18px #7b7bff88;
+        }
+
+        .subtitle {
+            text-align: center;
+            font-size: 0.9rem;
+            color: #888;
+            margin-bottom: 24px;
+        }
+
+        .btn-area {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 13px 30px;
+            font-size: 1rem;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: transform 0.18s, box-shadow 0.18s;
+        }
+
+        .btn:hover { transform: scale(1.07); }
+        .btn:active { transform: scale(0.97); }
+
+        .btn-reset {
+            background: linear-gradient(135deg,#444,#777);
+            color: white;
+            box-shadow: 0 4px 14px rgba(120,120,120,0.35);
+        }
+
+        .btn-5 {
+            background: linear-gradient(135deg,#c0392b,#e74c3c);
+            color: white;
+            box-shadow: 0 4px 14px rgba(231,76,60,0.45);
+        }
+
+        .btn-3 {
+            background: linear-gradient(135deg,#1a5276,#2980b9);
+            color: white;
+            box-shadow: 0 4px 14px rgba(41,128,185,0.45);
+        }
+
+        .btn.active-btn {
+            outline: 3px solid rgba(255,255,255,0.6);
+            outline-offset: 2px;
+        }
+
+        .speed-area {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 18px;
+            font-size: 0.85rem;
+            color: #aaa;
+        }
+
+        input[type=range] { accent-color: #7b7bff; width: 110px; }
+
+        /* ── 다이어그램 ── */
+        .diagram-wrap {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            flex-wrap: wrap;
+            margin-bottom: 18px;
+        }
+
+        .crystal-card {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 18px;
+            padding: 14px 16px 10px;
+            text-align: center;
+        }
+
+        .box-label {
+            font-size: 0.78rem;
+            color: #999;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        canvas { display: block; border-radius: 8px; }
+
+        .arrow-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .arrow-label {
+            font-size: 0.75rem;
+            color: #ccc;
+            text-align: center;
+            max-width: 72px;
+            line-height: 1.3;
+        }
+
+        /* ── 정보 패널 ── */
+        .info-panel {
+            max-width: 700px;
+            margin: 0 auto 18px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 18px;
+            padding: 18px 24px;
+        }
+
+        .info-panel h2 {
+            font-size: 1.15rem;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .badge { padding: 3px 13px; border-radius: 20px; font-size: 0.78rem; font-weight: bold; }
+        .badge-n { background:#c0392b; }
+        .badge-p { background:#1a5276; }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        @media(max-width:480px){ .info-grid{ grid-template-columns:1fr; } }
+
+        .info-item {
+            background: rgba(255,255,255,0.06);
+            border-radius: 10px;
+            padding: 10px 13px;
+        }
+
+        .info-item .key { font-size: 0.74rem; color: #999; margin-bottom: 3px; }
+        .info-item .val { font-size: 0.95rem; font-weight: bold; color: #e8e8ff; }
+
+        .why-box {
+            background: rgba(255,255,180,0.05);
+            border-left: 3px solid #f1c40f;
+            border-radius: 6px;
+            padding: 11px 15px;
+            font-size: 0.88rem;
+            line-height: 1.75;
+            color: #ddd;
+        }
+
+        .why-box strong { color: #f1c40f; }
+
+        /* ── 범례 ── */
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            flex-wrap: wrap;
+            font-size: 0.78rem;
+            color: #bbb;
+            margin-bottom: 10px;
+        }
+
+        .ldot {
+            display: inline-block;
+            width: 10px; height: 10px;
+            border-radius: 50%;
+            vertical-align: middle;
+            margin-right: 4px;
+        }
+
+        /* ── 에너지 띠 ── */
+        .band-wrap {
+            max-width: 700px;
+            margin: 0 auto 8px;
+        }
+
+        .band-title {
+            text-align: center;
+            font-size: 0.82rem;
+            color: #999;
+            margin-bottom: 6px;
+        }
+
+        .footer-note {
+            text-align: center;
+            font-size: 0.75rem;
+            color: #555;
+            margin-top: 8px;
+        }
+    </style>
+</head>
+<body>
+
+<h1>⚡ 반도체 도핑 시뮬레이션</h1>
+<p class="subtitle">순수 반도체에 불순물을 추가하면 어떻게 변할까?</p>
+
+<div class="btn-area">
+    <button class="btn btn-reset active-btn" id="btn-pure" onclick="setState('pure')">🔄 순수 반도체</button>
+    <button class="btn btn-5"   id="btn-n"    onclick="setState('n')">➕ 5족 원소 (인, P) → N형</button>
+    <button class="btn btn-3"   id="btn-p"    onclick="setState('p')">➕ 3족 원소 (붕소, B) → P형</button>
+</div>
+
+<div class="speed-area">
+    🐢 속도:
+    <input type="range" id="speedSlider" min="0.3" max="3" step="0.1" value="1">
+    🐇 <span id="speedVal">1.0x</span>
+</div>
+
+<div class="diagram-wrap">
+    <!-- 도핑 전 -->
+    <div class="crystal-card">
+        <div class="box-label">도핑 전 (순수 Si)</div>
+        <canvas id="canvas-before" width="230" height="230"></canvas>
+    </div>
+
+    <!-- 화살표 -->
+    <div class="arrow-area">
+        <svg width="56" height="30" viewBox="0 0 56 30">
+            <defs>
+                <marker id="ah" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+                    <path d="M0,0 L0,6 L8,3z" fill="#f1c40f"/>
+                </marker>
+            </defs>
+            <line x1="3" y1="15" x2="48" y2="15"
+                  stroke="#f1c40f" stroke-width="2.2" marker-end="url(#ah)"/>
+        </svg>
+        <div class="arrow-label" id="arrow-label">도핑 없음</div>
+    </div>
+
+    <!-- 도핑 후 -->
+    <div class="crystal-card">
+        <div class="box-label">도핑 후</div>
+        <canvas id="canvas-after" width="230" height="230"></canvas>
+    </div>
+</div>
+
+<!-- 범례 -->
+<div class="legend" id="legend-area">
+    <span><span class="ldot" style="background:#e67e22"></span>Si 원자</span>
+    <span><span class="ldot" style="background:#e74c3c"></span>P 원자 (5족)</span>
+    <span><span class="ldot" style="background:#2980b9"></span>B 원자 (3족)</span>
+    <span><span class="ldot" style="background:#00e5ff"></span>자유 전자 e⁻</span>
+    <span><span class="ldot" style="background:transparent;border:2px solid #f39c12;"></span>정공 h⁺</span>
+    <span id="legend-bond" style="display:none">
+        <span class="ldot" style="background:#7fdbff;border:none;width:18px;height:6px;border-radius:3px;"></span>
+        공유결합 전자쌍
+    </span>
+</div>
+
+<!-- 정보 패널 -->
+<div class="info-panel">
+    <h2 id="info-title">🔬 순수 반도체 (진성 반도체)</h2>
+    <div class="info-grid">
+        <div class="info-item"><div class="key">반도체 종류</div><div class="val" id="info-type">진성(순수) 반도체</div></div>
+        <div class="info-item"><div class="key">주요 전하 운반체</div><div class="val" id="info-carrier">전자 = 정공 (균형)</div></div>
+        <div class="info-item"><div class="key">전기 전도성</div><div class="val" id="info-conduct">매우 낮음</div></div>
+        <div class="info-item"><div class="key">도핑 원소</div><div class="val" id="info-dopant">없음</div></div>
+    </div>
+    <div class="why-box" id="info-why">
+        <strong>💡 왜 그럴까?</strong><br>
+        순수 규소(Si)는 최외각 전자 4개가 이웃 원자와 <strong>공유결합</strong>을 이뤄요.
+        모든 전자가 결합에 묶여 있어 자유 전자가 거의 없고, 전기가 잘 흐르지 않아요.
+    </div>
+</div>
+
+<!-- 에너지 띠 -->
+<div class="band-wrap">
+    <div class="band-title">에너지 띠 구조 (Band Structure)</div>
+    <canvas id="canvas-band" width="680" height="115"
+            style="display:block;margin:0 auto;border-radius:8px;"></canvas>
+</div>
+
+<p class="footer-note">* 원자 배열은 이해를 위한 모식도입니다.</p>
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  전역
+// ═══════════════════════════════════════════════════════
+let currentState = 'pure';
+let freeParticles = [];      // N형 자유전자
+let holeParticles = [];      // P형 정공
+let animFrameId   = null;
+let speedMult     = 1.0;
+let bandAnimT     = 0;
+let pulseT        = 0;
+
+// ── 격자 상수 ──
+const GRID = 3;
+const CELL = 66;       // 원자 간격 (넓게 → 결합 전자 표시 공간)
+const OX   = 34;
+const OY   = 34;
+const CW   = 230;
+const CH   = 230;
+
+function atomPos() {
+    const list = [];
+    for (let r = 0; r < GRID; r++)
+        for (let c = 0; c < GRID; c++)
+            list.push({ x: OX + c*CELL, y: OY + r*CELL, r, c });
+    return list;
+}
+
+// ═══════════════════════════════════════════════════════
+//  정보 데이터
+// ═══════════════════════════════════════════════════════
+const INFO = {
+    pure: {
+        title:'🔬 순수 반도체 (진성 반도체)', badge:null,
+        type:'진성(순수) 반도체', carrier:'전자 = 정공 (균형)',
+        conduct:'매우 낮음', dopant:'없음', arrowLabel:'도핑 없음',
+        why:`<strong>💡 왜 그럴까?</strong><br>
+             순수 규소(Si)는 최외각 전자 4개가 이웃 Si와 <strong>공유결합</strong>을 이뤄요.
+             모든 전자가 결합에 묶여 있어 자유롭게 움직이는 전자가 거의 없어요.`
+    },
+    n: {
+        title:'🔴 N형 반도체', badge:'N형', badgeClass:'badge-n',
+        type:'N형 반도체 (n-type)', carrier:'자유 전자 (e⁻) ← 다수 캐리어',
+        conduct:'높아짐 ⬆', dopant:'5족 원소 (인, P)', arrowLabel:'5족 도핑',
+        why:`<strong>💡 왜 N형이 될까?</strong><br>
+             인(P)은 최외각 전자가 <strong>5개</strong>예요. 공유결합에 4개만 쓰이고
+             <strong>전자 1개가 남아</strong> 격자 안을 자유롭게 돌아다녀요.<br>
+             → 전자(음전하)가 다수 캐리어 → <strong>N형</strong>`
+    },
+    p: {
+        title:'🔵 P형 반도체', badge:'P형', badgeClass:'badge-p',
+        type:'P형 반도체 (p-type)', carrier:'정공 (h⁺) ← 다수 캐리어',
+        conduct:'높아짐 ⬆', dopant:'3족 원소 (붕소, B)', arrowLabel:'3족 도핑',
+        why:`<strong>💡 왜 P형이 될까?</strong><br>
+             붕소(B)는 최외각 전자가 <strong>3개</strong>라 공유결합 자리 하나가 비어요.
+             → <strong>빈 자리(정공, ⊕)</strong>가 생기고, 이웃 전자가 연쇄적으로 빈 자리를 채우며
+             정공이 이동하는 것처럼 전류가 흘러요. → <strong>P형</strong>`
+    }
+};
+
+// ═══════════════════════════════════════════════════════
+//  공유결합 전자쌍 위치 계산
+//  각 결합선의 중앙 근처에 작은 전자 2개를 배치
+// ═══════════════════════════════════════════════════════
+function bondElectronPositions(x1, y1, x2, y2, offset) {
+    // 결합선 중앙을 기준으로 수직 방향 ±offset
+    const mx = (x1+x2)/2, my = (y1+y2)/2;
+    const dx = x2-x1, dy = y2-y1;
+    const len = Math.sqrt(dx*dx+dy*dy);
+    const nx = -dy/len, ny = dx/len; // 수직
+    return [
+        { x: mx + nx*offset, y: my + ny*offset },
+        { x: mx - nx*offset, y: my - ny*offset }
+    ];
+}
+
+// ═══════════════════════════════════════════════════════
+//  정적 격자 그리기 (공유결합 전자 포함)
+// ═══════════════════════════════════════════════════════
+function drawLattice(ctx, state) {
+    ctx.clearRect(0, 0, CW, CH);
+    const atoms = atomPos();
+    const isDoped = (state === 'n' || state === 'p');
+
+    // ── 결합선 + 공유결합 전자쌍 ──
+    for (const a of atoms) {
+        // 오른쪽 이웃
+        if (a.c < GRID-1) {
+            const bx = a.x + CELL, by = a.y;
+            drawBondLine(ctx, a.x, a.y, bx, by);
+            // 공유결합 전자쌍 (각 선마다 2개)
+            drawBondElectrons(ctx, a.x, a.y, bx, by, state, a, {r:a.r, c:a.c+1});
+        }
+        // 아래 이웃
+        if (a.r < GRID-1) {
+            const bx = a.x, by = a.y + CELL;
+            drawBondLine(ctx, a.x, a.y, bx, by);
+            drawBondElectrons(ctx, a.x, a.y, bx, by, state, a, {r:a.r+1, c:a.c});
+        }
+    }
+
+    // ── 원자 ──
+    for (const a of atoms) {
+        const isDopant = isDoped && a.r===1 && a.c===1;
+        if (isDopant) {
+            const col  = state==='n' ? '#e74c3c' : '#2980b9';
+            const glow = state==='n' ? 'rgba(231,76,60,0.5)' : 'rgba(41,128,185,0.5)';
+            const lbl  = state==='n' ? 'P' : 'B';
+            drawAtom(ctx, a.x, a.y, 16, col, glow, lbl);
+        } else {
+            drawAtom(ctx, a.x, a.y, 13, '#e67e22', 'rgba(230,126,34,0.3)', 'Si');
+        }
+    }
+}
+
+// 결합선
+function drawBondLine(ctx, x1, y1, x2, y2) {
+    ctx.beginPath();
+    ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
+    ctx.strokeStyle = 'rgba(255,255,255,0.13)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+}
+
+// 공유결합 전자쌍 그리기
+function drawBondElectrons(ctx, x1, y1, x2, y2, state, atomA, atomB) {
+    // P형: 붕소(1,1)와 연결된 결합에서 한쪽 전자를 빠지게 표현
+    const isDopantA = (state==='p' && atomA.r===1 && atomA.c===1);
+    const isDopantB = (state==='p' && atomB.r===1 && atomB.c===1);
+    const isPBond   = isDopantA || isDopantB;  // 붕소 결합
+
+    // 붕소와 연결된 결합 중 하나를 "빈 자리" 결합으로 지정
+    // (붕소의 오른쪽 or 아래쪽 결합 1개만 빈 자리로)
+    const isHoleBond = isPBond && atomA.c===1 && atomA.r===1 && atomB.c===2;
+
+    const pts = bondElectronPositions(x1, y1, x2, y2, 7);
+
+    if (isHoleBond) {
+        // 빈 결합: 전자 1개만 있고 나머지는 빈 자리로 표현
+        // 첫 번째 전자 (있는 것)
+        drawSingleBondElectron(ctx, pts[0].x, pts[0].y, false, false);
+        // 두 번째 자리 = 빈 자리 (정공)
+        drawHoleSpot(ctx, pts[1].x, pts[1].y);
+    } else {
+        // 정상 결합: 전자 2개 모두 표시
+        for (const pt of pts) {
+            drawSingleBondElectron(ctx, pt.x, pt.y, isPBond, false);
+        }
+    }
+}
+
+// 결합 전자 하나
+function drawSingleBondElectron(ctx, x, y, dimmed, isFree) {
+    const alpha = dimmed ? 0.55 : 0.85;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    // 후광
+    const g = ctx.createRadialGradient(x,y,0,x,y,7);
+    g.addColorStop(0,'rgba(120,210,255,0.5)');
+    g.addColorStop(1,'rgba(120,210,255,0)');
+    ctx.beginPath(); ctx.arc(x,y,7,0,Math.PI*2);
+    ctx.fillStyle=g; ctx.fill();
+    // 전자 본체
+    ctx.beginPath(); ctx.arc(x,y,3.5,0,Math.PI*2);
+    ctx.fillStyle='#7fdbff'; ctx.fill();
+    ctx.strokeStyle='rgba(255,255,255,0.5)';
+    ctx.lineWidth=0.7; ctx.stroke();
+    ctx.restore();
+}
+
+// 빈 자리(정공) 표시 - 점선 원
+function drawHoleSpot(ctx, x, y) {
+    ctx.save();
+    // 후광
+    const g = ctx.createRadialGradient(x,y,0,x,y,10);
+    g.addColorStop(0,'rgba(255,165,0,0.35)');
+    g.addColorStop(1,'rgba(255,165,0,0)');
+    ctx.beginPath(); ctx.arc(x,y,10,0,Math.PI*2);
+    ctx.fillStyle=g; ctx.fill();
+    // 점선 원
+    ctx.beginPath(); ctx.arc(x,y,5,0,Math.PI*2);
+    ctx.strokeStyle='rgba(255,165,0,0.9)';
+    ctx.lineWidth=1.8;
+    ctx.setLineDash([3,2]); ctx.stroke(); ctx.setLineDash([]);
+    // ⊕ 기호
+    ctx.fillStyle='rgba(255,165,0,0.9)';
+    ctx.font='bold 8px sans-serif';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText('⊕',x,y);
+    ctx.restore();
+}
+
+// 원자
+function drawAtom(ctx, x, y, r, color, glow, label) {
+    const g = ctx.createRadialGradient(x,y,1,x,y,r+8);
+    g.addColorStop(0,glow); g.addColorStop(1,'transparent');
+    ctx.beginPath(); ctx.arc(x,y,r+8,0,Math.PI*2);
+    ctx.fillStyle=g; ctx.fill();
+
+    ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2);
+    ctx.fillStyle=color; ctx.fill();
+    ctx.strokeStyle='rgba(255,255,255,0.35)'; ctx.lineWidth=1.2; ctx.stroke();
+
+    ctx.fillStyle='white';
+    ctx.font=`bold ${r<14?9:11}px sans-serif`;
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(label,x,y);
+}
+
+// ═══════════════════════════════════════════════════════
+//  N형 자유 전자 파티클
+// ═══════════════════════════════════════════════════════
+function createFreeElectrons() {
+    freeParticles = [];
+    // 인(P) 원자에서 방출된 여분 전자 1개 + 열적 생성 전자 약간
+    const cx = OX + 1*CELL, cy = OY + 1*CELL; // 도핑 원자 위치
+    const positions = [
+        {x:cx+20, y:cy-18},
+        {x:cx-30, y:cy+10},
+        {x:cx+40, y:cy+30},
+        {x:OX, y:OY+15},
+        {x:OX+2*CELL, y:OY+2*CELL-10},
+    ];
+    for (const pos of positions) {
+        freeParticles.push({
+            x:pos.x, y:pos.y,
+            vx:(Math.random()-0.5)*1.4,
+            vy:(Math.random()-0.5)*1.4,
+            trail:[], alpha:0, size:6
+        });
+    }
+}
+
+// ═══════════════════════════════════════════════════════
+//  P형 정공 파티클 (공유결합 전자들 사이를 이동)
+// ═══════════════════════════════════════════════════════
+// 정공은 결합선 위(원자와 원자 사이)를 이동하는 것처럼 표현
+// 웨이포인트: 결합선의 중간 지점들
+function buildHoleWaypoints() {
+    const pts = [];
+    const atoms = atomPos();
+    for (const a of atoms) {
+        if (a.c < GRID-1)
+            pts.push({x: a.x+CELL/2, y: a.y});
+        if (a.r < GRID-1)
+            pts.push({x: a.x, y: a.y+CELL/2});
+        pts.push({x:a.x, y:a.y}); // 원자 위치도 경유
+    }
+    return pts;
+}
+
+function createHoleParticles() {
+    holeParticles = [];
+    const waypoints = buildHoleWaypoints();
+    const count = 4;
+    for (let i=0; i<count; i++) {
+        const startWp = Math.floor(Math.random()*waypoints.length);
+        holeParticles.push({
+            x: waypoints[startWp].x + (Math.random()-0.5)*8,
+            y: waypoints[startWp].y + (Math.random()-0.5)*8,
+            vx:(Math.random()-0.5)*0.9,
+            vy:(Math.random()-0.5)*0.9,
+            trail:[], alpha:0, size:7,
+            // 이동 목표
+            targetIdx: (startWp+1)%waypoints.length,
+            waypoints: waypoints,
+            moveT: Math.random()
+        });
+    }
+}
+
+// ═══════════════════════════════════════════════════════
+//  애니메이션 루프
+// ═══════════════════════════════════════════════════════
+let lastTS = 0;
+
+function animateAfter(ts) {
+    const dt = Math.min((ts-lastTS)/16, 3);
+    lastTS = ts;
+
+    const canvas = document.getElementById('canvas-after');
+    const ctx    = canvas.getContext('2d');
+
+    drawLattice(ctx, currentState);
+
+    if (currentState === 'n') {
+        updateDrawFreeElectrons(ctx, dt);
+    } else if (currentState === 'p') {
+        updateDrawHoles(ctx, dt);
+    }
+
+    animFrameId = requestAnimationFrame(animateAfter);
+}
+
+// N형: 자유전자 업데이트
+function updateDrawFreeElectrons(ctx, dt) {
+    for (const p of freeParticles) {
+        if (p.alpha < 1) p.alpha = Math.min(1, p.alpha+0.025);
+        const spd = speedMult * dt;
+        p.x += p.vx*spd; p.y += p.vy*spd;
+
+        // 원자 반발
+        for (const a of atomPos()) {
+            const dx=p.x-a.x, dy=p.y-a.y;
+            const d=Math.sqrt(dx*dx+dy*dy);
+            if (d<22 && d>0) {
+                const nx=dx/d,ny=dy/d;
+                p.x=a.x+nx*22.5; p.y=a.y+ny*22.5;
+                const dot=p.vx*nx+p.vy*ny;
+                p.vx-=2*dot*nx; p.vy-=2*dot*ny;
+            }
+        }
+        // 벽
+        if (p.x<8)     {p.x=8;     p.vx=Math.abs(p.vx);}
+        if (p.x>CW-8)  {p.x=CW-8;  p.vx=-Math.abs(p.vx);}
+        if (p.y<8)     {p.y=8;     p.vy=Math.abs(p.vy);}
+        if (p.y>CH-8)  {p.y=CH-8;  p.vy=-Math.abs(p.vy);}
+        // 브라운
+        p.vx+=(Math.random()-0.5)*0.09; p.vy+=(Math.random()-0.5)*0.09;
+        const mv=1.8, cv=Math.sqrt(p.vx**2+p.vy**2);
+        if(cv>mv){p.vx=p.vx/cv*mv; p.vy=p.vy/cv*mv;}
+        // 잔상
+        p.trail.push({x:p.x,y:p.y});
+        if(p.trail.length>16) p.trail.shift();
+        drawTrail(ctx,p,'0,229,255');
+        drawElectronParticle(ctx,p);
+    }
+}
+
+// P형: 정공 업데이트 (웨이포인트 따라 이동)
+function updateDrawHoles(ctx, dt) {
+    for (const p of holeParticles) {
+        if (p.alpha < 1) p.alpha = Math.min(1, p.alpha+0.02);
+        const spd = speedMult * 0.012 * dt;
+        p.moveT = Math.min(1, p.moveT + spd);
+
+        const wp   = p.waypoints;
+        const cur  = wp[(p.targetIdx-1+wp.length)%wp.length];
+        const next = wp[p.targetIdx];
+
+        // 부드러운 이동 (ease in-out)
+        const t = easeInOut(p.moveT);
+        p.x = cur.x + (next.x - cur.x)*t;
+        p.y = cur.y + (next.y - cur.y)*t;
+
+        if (p.moveT >= 1) {
+            p.targetIdx = (p.targetIdx+1)%wp.length;
+            p.moveT = 0;
+        }
+
+        // 잔상 + 본체
+        p.trail.push({x:p.x, y:p.y});
+        if(p.trail.length>14) p.trail.shift();
+        drawTrail(ctx, p, '243,156,18');
+        drawHoleParticle(ctx, p);
+    }
+}
+
+function easeInOut(t) {
+    return t<0.5 ? 2*t*t : -1+(4-2*t)*t;
+}
+
+// 잔상
+function drawTrail(ctx, p, rgb) {
+    if(p.trail.length<2) return;
+    for (let i=1; i<p.trail.length; i++) {
+        const frac = i/p.trail.length;
+        ctx.beginPath();
+        ctx.moveTo(p.trail[i-1].x, p.trail[i-1].y);
+        ctx.lineTo(p.trail[i].x,   p.trail[i].y);
+        ctx.strokeStyle=`rgba(${rgb},${frac*0.4*p.alpha})`;
+        ctx.lineWidth=frac*3.5;
+        ctx.lineCap='round'; ctx.stroke();
+    }
+}
+
+// 자유전자 파티클
+function drawElectronParticle(ctx, p) {
+    const {x,y,size,alpha}=p;
+    ctx.save(); ctx.globalAlpha=alpha;
+    const g=ctx.createRadialGradient(x,y,0,x,y,size+5);
+    g.addColorStop(0,'rgba(0,229,255,0.7)');
+    g.addColorStop(0.5,'rgba(0,180,255,0.3)');
+    g.addColorStop(1,'rgba(0,229,255,0)');
+    ctx.beginPath(); ctx.arc(x,y,size+5,0,Math.PI*2);
+    ctx.fillStyle=g; ctx.fill();
+    ctx.beginPath(); ctx.arc(x,y,size,0,Math.PI*2);
+    ctx.fillStyle='#00e5ff'; ctx.fill();
+    ctx.strokeStyle='rgba(255,255,255,0.6)'; ctx.lineWidth=1; ctx.stroke();
+    ctx.fillStyle='#001a33';
+    ctx.font='bold 7px sans-serif';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText('e⁻',x,y);
+    ctx.restore();
+}
+
+// 정공 파티클
+function drawHoleParticle(ctx, p) {
+    const {x,y,size,alpha}=p;
+    ctx.save(); ctx.globalAlpha=alpha;
+    // 후광
+    const g=ctx.createRadialGradient(x,y,0,x,y,size+6);
+    g.addColorStop(0,'rgba(255,165,0,0.45)');
+    g.addColorStop(1,'rgba(255,165,0,0)');
+    ctx.beginPath(); ctx.arc(x,y,size+6,0,Math.PI*2);
+    ctx.fillStyle=g; ctx.fill();
+    // 본체 (빈 원)
+    ctx.beginPath(); ctx.arc(x,y,size,0,Math.PI*2);
+    ctx.fillStyle='rgba(255,165,0,0.1)'; ctx.fill();
+    ctx.strokeStyle='#ffa500'; ctx.lineWidth=2.2;
+    ctx.setLineDash([4,2]); ctx.stroke(); ctx.setLineDash([]);
+    // ⊕
+    ctx.fillStyle='#ffa500';
+    ctx.font='bold 10px sans-serif';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText('⊕',x,y);
+    ctx.restore();
+}
+
+// ═══════════════════════════════════════════════════════
+//  도핑 전 캔버스 (정적 + 열진동 펄스)
+// ═══════════════════════════════════════════════════════
+function animateBefore() {
+    const canvas = document.getElementById('canvas-before');
+    const ctx    = canvas.getContext('2d');
+    drawLattice(ctx, 'pure');
+    // 결합 전자 위에 미세 펄스
+    pulseT += 0.025 * speedMult;
+    const atoms = atomPos();
+    for (const a of atoms) {
+        if (a.c < GRID-1) {
+            const pts = bondElectronPositions(a.x,a.y,a.x+CELL,a.y,7);
+            for (let k=0; k<2; k++) {
+                const t=(Math.sin(pulseT+a.r*1.7+a.c*2.3+k*1.1)+1)/2;
+                ctx.save(); ctx.globalAlpha=0.15+t*0.25;
+                ctx.beginPath(); ctx.arc(pts[k].x,pts[k].y,5,0,Math.PI*2);
+                ctx.fillStyle='#a0e8ff'; ctx.fill();
+                ctx.restore();
+            }
+        }
+    }
+    requestAnimationFrame(animateBefore);
+}
+
+// ═══════════════════════════════════════════════════════
+//  에너지 띠
+// ═══════════════════════════════════════════════════════
+function animateBand() {
+    const canvas = document.getElementById('canvas-band');
+    const ctx = canvas.getContext('2d');
+    const W=canvas.width, H=canvas.height;
+    ctx.clearRect(0,0,W,H);
+    bandAnimT += 0.04*speedMult;
+
+    const bW=155, bH=26;
+    const condY=14, valY=H-14-bH;
+    const gapMid=(condY+bH+valY)/2;
+    const lx=32;
+
+    // 왼쪽: 순수
+    drawBandRect(ctx,lx,condY,bW,bH,'#3498db','전도띠');
+    drawBandRect(ctx,lx,valY, bW,bH,'#27ae60','원자가띠');
+    ctx.fillStyle='rgba(255,255,255,0.04)';
+    ctx.fillRect(lx,condY+bH,bW,valY-condY-bH);
+    bLabel(ctx,lx+bW/2,gapMid-4,'금지띠','#888','10px');
+    bLabel(ctx,lx+bW/2,H-3,'순수 반도체','#ccc','bold 11px');
+
+    // 화살표
+    const ax=lx+bW+22;
+    ctx.strokeStyle='#f1c40f'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(ax,H/2); ctx.lineTo(ax+32,H/2); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(ax+24,H/2-4); ctx.lineTo(ax+32,H/2); ctx.lineTo(ax+24,H/2+4);
+    ctx.fillStyle='#f1c40f'; ctx.fill();
+
+    // 오른쪽: 도핑 후
+    const rx=ax+42;
+    drawBandRect(ctx,rx,condY,bW,bH,'#3498db','전도띠');
+    drawBandRect(ctx,rx,valY, bW,bH,'#27ae60','원자가띠');
+    ctx.fillStyle='rgba(255,255,255,0.04)';
+    ctx.fillRect(rx,condY+bH,bW,valY-condY-bH);
+
+    if (currentState==='pure') {
+        bLabel(ctx,rx+bW/2,gapMid-4,'금지띠','#888','10px');
+        bLabel(ctx,rx+bW/2,H-3,'변화 없음','#ccc','bold 11px');
+
+    } else if (currentState==='n') {
+        const dY=condY+bH+9;
+        ctx.strokeStyle='#e74c3c'; ctx.lineWidth=1.8;
+        ctx.setLineDash([5,3]);
+        ctx.beginPath(); ctx.moveTo(rx+10,dY); ctx.lineTo(rx+bW-10,dY); ctx.stroke();
+        ctx.setLineDash([]);
+        bLabel(ctx,rx+bW/2,dY+11,'도너 준위 (여분 전자)','#e74c3c','9px');
+        bLabel(ctx,rx+bW/2,H-3,'N형 반도체','#e74c3c','bold 11px');
+        for (let i=0;i<3;i++) {
+            const phase=bandAnimT+(i/3)*Math.PI*2;
+            const t=(Math.sin(phase)+1)/2;
+            const ex=rx+28+i*40;
+            const ey=dY-(dY-(condY+bH/2))*t;
+            const g=ctx.createRadialGradient(ex,ey,0,ex,ey,8);
+            g.addColorStop(0,'rgba(0,229,255,0.9)');
+            g.addColorStop(1,'rgba(0,229,255,0)');
+            ctx.beginPath(); ctx.arc(ex,ey,8,0,Math.PI*2);
+            ctx.fillStyle=g; ctx.fill();
+            ctx.beginPath(); ctx.arc(ex,ey,4,0,Math.PI*2);
+            ctx.fillStyle='#00e5ff'; ctx.fill();
+        }
+
+    } else {
+        const aY=valY-10;
+        ctx.strokeStyle='#2980b9'; ctx.lineWidth=1.8;
+        ctx.setLineDash([5,3]);
+        ctx.beginPath(); ctx.moveTo(rx+10,aY); ctx.lineTo(rx+bW-10,aY); ctx.stroke();
+        ctx.setLineDash([]);
+        bLabel(ctx,rx+bW/2,aY-6,'억셉터 준위 (정공 생성)','#5dade2','9px');
+        bLabel(ctx,rx+bW/2,H-3,'P형 반도체','#5dade2','bold 11px');
+        for (let i=0;i<3;i++) {
+            const phase=bandAnimT+(i/3)*Math.PI*2;
+            const t=(Math.sin(phase)+1)/2;
+            const hx=rx+28+i*40;
+            const hy=valY+bH/2+7*t;
+            const g=ctx.createRadialGradient(hx,hy,0,hx,hy,9);
+            g.addColorStop(0,'rgba(255,165,0,0.5)');
+            g.addColorStop(1,'rgba(255,165,0,0)');
+            ctx.beginPath(); ctx.arc(hx,hy,9,0,Math.PI*2);
+            ctx.fillStyle=g; ctx.fill();
+            ctx.beginPath(); ctx.arc(hx,hy,4.5,0,Math.PI*2);
+            ctx.strokeStyle=`rgba(255,165,0,${0.6+t*0.4})`;
+            ctx.lineWidth=1.8; ctx.stroke();
+            ctx.fillStyle='#ffa500';
+            ctx.font='bold 7px sans-serif';
+            ctx.textAlign='center'; ctx.textBaseline='middle';
+            ctx.fillText('⊕',hx,hy);
+        }
+    }
+
+    // E축
+    ctx.strokeStyle='rgba(255,255,255,0.2)'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(18,10); ctx.lineTo(18,H-8); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(14,16); ctx.lineTo(18,9); ctx.lineTo(22,16);
+    ctx.fillStyle='rgba(255,255,255,0.35)'; ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,0.4)';
+    ctx.font='11px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText('E',18,7);
+
+    requestAnimationFrame(animateBand);
+}
+
+function drawBandRect(ctx,x,y,w,h,color,label){
+    const r=parseInt(color.slice(1,3),16);
+    const g=parseInt(color.slice(3,5),16);
+    const b=parseInt(color.slice(5,7),16);
+    ctx.fillStyle=`rgba(${r},${g},${b},0.28)`;
+    ctx.fillRect(x,y,w,h);
+    ctx.strokeStyle=color; ctx.lineWidth=1.5; ctx.strokeRect(x,y,w,h);
+    ctx.fillStyle='white'; ctx.font='bold 11px sans-serif';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(label,x+w/2,y+h/2);
+}
+
+function bLabel(ctx,x,y,text,color,font){
+    ctx.fillStyle=color; ctx.font=`${font} sans-serif`;
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(text,x,y);
+}
+
+// ═══════════════════════════════════════════════════════
+//  상태 전환
+// ═══════════════════════════════════════════════════════
+function setState(type) {
+    currentState = type;
+
+    // 버튼 강조
+    document.getElementById('btn-pure').classList.remove('active-btn');
+    document.getElementById('btn-n').classList.remove('active-btn');
+    document.getElementById('btn-p').classList.remove('active-btn');
+    const btnMap = {pure:'btn-pure', n:'btn-n', p:'btn-p'};
+    document.getElementById(btnMap[type]).classList.add('active-btn');
+
+    // 범례 공유결합 전자 표시
+    document.getElementById('legend-bond').style.display =
+        (type==='p'||type==='pure') ? 'inline' : 'inline';
+
+    // 정보
+    const info = INFO[type];
+    document.getElementById('info-title').innerHTML =
+        info.badge
+            ? `${info.title} <span class="badge ${info.badgeClass}">${info.badge}</span>`
+            : info.title;
+    document.getElementById('info-type').textContent    = info.type;
+    document.getElementById('info-carrier').textContent = info.carrier;
+    document.getElementById('info-conduct').textContent = info.conduct;
+    document.getElementById('info-dopant').textContent  = info.dopant;
+    document.getElementById('info-why').innerHTML       = info.why;
+    document.getElementById('arrow-label').textContent  = info.arrowLabel;
+
+    // 파티클 정지 후 재생성
+    if (animFrameId) { cancelAnimationFrame(animFrameId); animFrameId=null; }
+
+    if (type==='n') {
+        createFreeElectrons();
+        animFrameId = requestAnimationFrame(animateAfter);
+    } else if (type==='p') {
+        createHoleParticles();
+        animFrameId = requestAnimationFrame(animateAfter);
+    } else {
+        // 순수: 정적으로 한 번만 그리기
+        const ctx = document.getElementById('canvas-after').getContext('2d');
+        drawLattice(ctx, 'pure');
+    }
+}
+
+// 속도 슬라이더
+document.getElementById('speedSlider').addEventListener('input', function(){
+    speedMult = parseFloat(this.value);
+    document.getElementById('speedVal').textContent = speedMult.toFixed(1)+'x';
+});
+
+// 초기 실행
+window.onload = () => {
+    setState('pure');
+    animateBefore();
+    animateBand();
+};
+</script>
+</body>
+</html>
